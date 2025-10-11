@@ -6,6 +6,7 @@
 #include "Interface/TRInteractable.h"
 #include "Engine/OverlapResult.h"
 
+
 // Sets default values for this component's properties
 UTRInteractComponent::UTRInteractComponent()
 {
@@ -25,15 +26,6 @@ void UTRInteractComponent::BeginPlay()
 
 	// ...
 	
-}
-
-void UTRInteractComponent::TrySphereInteract()
-{
-	AActor* Hit = nullptr;
-
-    if (!ShpereScan(Hit) || !Hit) return;
-
-    Server_Interact(Hit);
 }
 
 bool UTRInteractComponent::ShpereScan(AActor*& Out)
@@ -95,13 +87,12 @@ bool UTRInteractComponent::ShpereScan(AActor*& Out)
 }
 
 
-void UTRInteractComponent::Server_Interact_Implementation(AActor* Target)
+void UTRInteractComponent::Server_Interact_Implementation()
 {
-    if (!Target || !Target->Implements<UTRInteractable>()) return;
+    AActor* Target = nullptr;
+    if (!ShpereScan(Target) || !Target) return;
 
-    // 서버 재검증(치트/경쟁 방지)
-    constexpr float MaxServerDistance = 500.f;
-    if (FVector::Dist(Target->GetActorLocation(), Target->GetActorLocation()) > MaxServerDistance) return;
+    if (!Target || !Target->Implements<UTRInteractable>()) return;
 
     if (ITRInteractable* Interactable = Cast<ITRInteractable>(Target))
     {

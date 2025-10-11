@@ -6,6 +6,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Component/TRInteractComponent.h"
 #include "Component/TREquipmentComponent.h"
+#include "Component/TRStatComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -58,12 +59,28 @@ ATrollRushCharacter::ATrollRushCharacter()
 	InteractComponent->SetIsReplicated(true);
 	EquipmentComponent = CreateDefaultSubobject<UTREquipmentComponent>(TEXT("EquipmentComp"));
 	EquipmentComponent->SetIsReplicated(true);
+	StatComponent = CreateDefaultSubobject<UTRStatComponent>(TEXT("StatComp"));
+	StatComponent->SetIsReplicated(true);
 }
 
 void ATrollRushCharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+	StatComponent->InitStats(CurrentHp, MaxHp);
+}
+
+float ATrollRushCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	// 부모의 기본 로직(히트 리액션 등)이 있다면 유지
+	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	if (UTRStatComponent* StatComp = FindComponentByClass<UTRStatComponent>())
+	{
+		StatComp->Server_ApplyDamage(DamageAmount);
+	}
+
+	return DamageAmount;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -94,7 +111,11 @@ void ATrollRushCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ATrollRushCharacter::Look);
 
 		EnhancedInputComponent->BindAction(InteractAction, ETriggerEvent::Started, this, &ATrollRushCharacter::Interact);
+		EnhancedInputComponent->BindAction(ThrowAction, ETriggerEvent::Started, this, &ATrollRushCharacter::Throw);
 
+		EnhancedInputComponent->BindAction(CastingAction, ETriggerEvent::Started, this, &ATrollRushCharacter::Casting);
+
+		EnhancedInputComponent->BindAction(CastingAction, ETriggerEvent::Completed, this, &ATrollRushCharacter::CastingCancle);
 	}
 	else
 	{
@@ -140,5 +161,23 @@ void ATrollRushCharacter::Look(const FInputActionValue& Value)
 
 void ATrollRushCharacter::Interact(const FInputActionValue& Value)
 {
-	InteractComponent->TrySphereInteract();
+	InteractComponent->Server_Interact();
+}
+
+void ATrollRushCharacter::Throw(const FInputActionValue& Value)
+{
+	EquipmentComponent->Server_Throw();
+}
+
+void ATrollRushCharacter::Casting(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Casting"));
+	StatComponent->Server_BeginCasting();
+}
+
+void ATrollRushCharacter::CastingCancle(const FInputActionValue& Value)
+{
+
+	UE_LOG(LogTemp, Warning, TEXT("Casting Cancle"));
+	StatComponent->Server_CancleCasting();
 }

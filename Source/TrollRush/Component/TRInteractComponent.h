@@ -21,14 +21,12 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
-	void TrySphereInteract();
-
+	//타겟감지관련은 서버에서 실행되어야함.
+	UFUNCTION(Server, Reliable)
+	void Server_Interact();
 private:
 	bool ShpereScan(AActor*& Out);
 
-	// 서버 RPC (확정 실행)
-	UFUNCTION(Server, Reliable)
-	void Server_Interact(AActor* Target);
 
 private:
 	UPROPERTY(EditDefaultsOnly)
